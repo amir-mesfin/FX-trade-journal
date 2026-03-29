@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch, downloadPdf } from '../api/client'
 import { useAuth } from '../hooks/useAuth'
 import { StatsFilters } from '../components/StatsFilters'
+import { InsightsPanel } from '../components/InsightsPanel'
 import { statsQueryString, reportQueryString } from '../utils/statsQuery'
 import {
   BarChart,
@@ -86,6 +87,8 @@ export function Analytics() {
           {pdfLoading === 'month' ? 'PDF…' : 'Export PDF (month)'}
         </button>
       </div>
+
+      <InsightsPanel filters={appliedFilters} timezone={tz} />
 
       {error && (
         <p className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</p>

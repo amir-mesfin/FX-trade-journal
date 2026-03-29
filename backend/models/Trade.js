@@ -27,8 +27,13 @@ const tradeSchema = new mongoose.Schema(
     status: { type: String, enum: ['open', 'closed'], default: 'closed' },
     /** Optional psychology / daily journal line tied to this trade */
     psychologyNote: { type: String, default: '' },
+    importSource: { type: String, enum: ['manual', 'csv'], default: 'manual' },
+    /** Dedup CSV imports (e.g. MT ticket) */
+    externalId: { type: String },
   },
   { timestamps: true }
 );
+
+tradeSchema.index({ user: 1, externalId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Trade', tradeSchema);

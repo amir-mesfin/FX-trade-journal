@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { apiFetch, downloadCsv } from '../api/client'
+import { apiFetch, downloadCsv, uploadTradeCsv } from '../api/client'
 import { statsQueryString } from '../utils/statsQuery'
 import { resolveScreenshotUrl, screenshotKey } from '../utils/screenshotUrl'
 
@@ -20,6 +20,9 @@ export function TradeHistory() {
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [detail, setDetail] = useState(null)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState(null)
 
   function load() {
     setLoading(true)
@@ -60,6 +63,23 @@ export function TradeHistory() {
     }
   }
 
+  async function handleImportFile(e) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setImporting(true)
+    setImportResult(null)
+    try {
+      const r = await uploadTradeCsv(f)
+      setImportResult(r)
+      load()
+    } catch (err) {
+      setImportResult({ error: err.message })
+    } finally {
+      setImporting(false)
+      e.target.value = ''
+    }
+  }
+
   async function handleExport() {
     setExporting(true)
     try {
@@ -88,6 +108,16 @@ export function TradeHistory() {
           <p className="mt-1 text-sm text-slate-500">{data.total} trades · click a row to view full details</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setImportOpen(true)
+              setImportResult(null)
+            }}
+            className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+          >
+            Import CSV
+          </button>
           <button
             type="button"
             onClick={handleExport}
@@ -222,6 +252,66 @@ export function TradeHistory() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {importOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 pt-12 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => setImportOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-label="Import trades from CSV"
+            className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-950 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <h2 className="text-lg font-semibold text-white">Import MT4 / MT5 CSV</h2>
+              <button
+                type="button"
+                onClick={() => setImportOpen(false)}
+                className="text-slate-400 hover:text-white"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="mt-2 text-sm text-slate-400">
+              Export <strong className="text-slate-300">Account History</strong> from MetaTrader, save as{' '}
+              <strong className="text-slate-300">.csv</strong> (English columns work best: Symbol, Type,
+              Size, Open/Close time, prices, Profit). No broker API — file upload only. Duplicate tickets
+              are skipped.
+            </p>
+            <label className="mt-4 block">
+              <span className="sr-only">Choose CSV file</span>
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                disabled={importing}
+                onChange={handleImportFile}
+                className="block w-full text-sm text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-800 file:px-4 file:py-2 file:text-slate-200"
+              />
+            </label>
+            {importing && <p className="mt-3 text-sm text-slate-500">Importing…</p>}
+            {importResult && !importResult.error && (
+              <p className="mt-3 text-sm text-emerald-400">
+                Imported {importResult.imported}, skipped duplicates {importResult.skipped} (parsed{' '}
+                {importResult.totalParsed} rows).
+              </p>
+            )}
+            {importResult?.error && (
+              <p className="mt-3 text-sm text-red-400">{importResult.error}</p>
+            )}
+            {importResult?.errors?.length > 0 && (
+              <ul className="mt-2 max-h-32 overflow-auto text-xs text-slate-500">
+                {importResult.errors.slice(0, 8).map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 

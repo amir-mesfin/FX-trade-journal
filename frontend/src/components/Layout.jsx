@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 
 const linkClass = ({ isActive }) =>
   [
-    'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+    'shrink-0 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors sm:py-2',
     isActive
       ? 'bg-emerald-500/15 text-emerald-400'
       : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200',
@@ -23,7 +23,7 @@ export function Layout() {
             <span className="hidden text-slate-600 sm:inline">·</span>
             <span className="hidden truncate text-sm text-slate-500 sm:inline">{user?.name}</span>
           </div>
-          <nav className="flex flex-wrap items-center gap-1">
+          <nav className="-mx-1 flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto overflow-y-hidden px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
             <NavLink to="/" end className={linkClass}>
               Dashboard
             </NavLink>
@@ -55,7 +55,7 @@ export function Layout() {
           </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-8">
+      <main className="mx-auto max-w-6xl px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:px-6 md:py-8">
         <Outlet />
       </main>
     </div>

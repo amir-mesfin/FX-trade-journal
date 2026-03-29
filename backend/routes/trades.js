@@ -1,12 +1,22 @@
 const express = require('express');
+const multer = require('multer');
 const Trade = require('../models/Trade');
 const { authRequired } = require('../middleware/auth');
 const { uploadScreenshots } = require('../middleware/upload');
 const { filesToScreenshots, removeStoredScreenshots } = require('../utils/screenshots');
 const { buildTradeFilter } = require('../utils/buildTradeFilter');
 const { computeRealizedRMultiple } = require('../utils/tradeMath');
+const { parseTradeCsv } = require('../utils/csvImportTrades');
 
 const router = express.Router();
+
+const uploadCsv = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 4 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    cb(null, /\.csv$/i.test(file.originalname || ''));
+  },
+});
 
 router.use(authRequired);
 
@@ -131,6 +141,42 @@ router.get('/export/csv', async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Export failed' });
+  }
+});
+
+router.post('/import/csv', uploadCsv.single('file'), async (req, res) => {
+  try {
+    if (!req.file?.buffer) {
+      return res.status(400).json({ error: 'Upload a .csv file (form field name: file)' });
+    }
+    const { rows, errors: parseErrors } = parseTradeCsv(req.file.buffer);
+    if (!rows.length) {
+      return res.status(400).json({
+        error: parseErrors[0] || 'No valid rows parsed',
+        errors: parseErrors,
+      });
+    }
+    let imported = 0;
+    let skipped = 0;
+    const rowErrors = [...parseErrors];
+    for (const row of rows) {
+      try {
+        await Trade.create({ ...row, user: req.userId });
+        imported += 1;
+      } catch (e) {
+        if (e.code === 11000) skipped += 1;
+        else rowErrors.push(String(e.message || e));
+      }
+    }
+    res.json({
+      imported,
+      skipped,
+      totalParsed: rows.length,
+      errors: rowErrors.slice(0, 40),
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Import failed' });
   }
 });
 

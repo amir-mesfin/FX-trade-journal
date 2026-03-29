@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { apiFetch, downloadPdf } from '../api/client'
 import { useAuth } from '../hooks/useAuth'
 import { StatsFilters } from '../components/StatsFilters'
+import { InsightsPanel } from '../components/InsightsPanel'
 import { statsQueryString, reportQueryString } from '../utils/statsQuery'
 import {
   LineChart,
@@ -119,6 +120,8 @@ export function Dashboard() {
           {pdfLoading === 'year' ? 'PDF…' : 'PDF · Year'}
         </button>
       </div>
+
+      <InsightsPanel filters={appliedFilters} timezone={tz} />
 
       {error && (
         <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">

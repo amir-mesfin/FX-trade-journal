@@ -43,6 +43,20 @@ export async function downloadCsv(searchQuery = '') {
   URL.revokeObjectURL(url)
 }
 
+export async function uploadTradeCsv(file) {
+  const t = getToken()
+  const fd = new FormData()
+  fd.append('file', file)
+  const r = await fetch('/api/trades/import/csv', {
+    method: 'POST',
+    headers: t ? { Authorization: `Bearer ${t}` } : {},
+    body: fd,
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.error || r.statusText || 'Import failed')
+  return data
+}
+
 export async function downloadPdf(searchQuery = '') {
   const t = getToken()
   const path = `/api/reports/pdf${searchQuery.startsWith('?') ? searchQuery : searchQuery ? `?${searchQuery}` : ''}`
