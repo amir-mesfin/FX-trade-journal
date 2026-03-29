@@ -24,9 +24,10 @@ export async function apiFetch(path, options = {}) {
   return data
 }
 
-export async function downloadCsv() {
+export async function downloadCsv(searchQuery = '') {
   const t = getToken()
-  const r = await fetch('/api/trades/export/csv', {
+  const path = `/api/trades/export/csv${searchQuery.startsWith('?') ? searchQuery : searchQuery ? `?${searchQuery}` : ''}`
+  const r = await fetch(path, {
     headers: t ? { Authorization: `Bearer ${t}` } : {},
   })
   if (!r.ok) {
@@ -38,6 +39,25 @@ export async function downloadCsv() {
   const a = document.createElement('a')
   a.href = url
   a.download = 'trades.csv'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export async function downloadPdf(searchQuery = '') {
+  const t = getToken()
+  const path = `/api/reports/pdf${searchQuery.startsWith('?') ? searchQuery : searchQuery ? `?${searchQuery}` : ''}`
+  const r = await fetch(path, {
+    headers: t ? { Authorization: `Bearer ${t}` } : {},
+  })
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}))
+    throw new Error(err.error || 'PDF export failed')
+  }
+  const blob = await r.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `trade-journal-report-${new Date().toISOString().slice(0, 10)}.pdf`
   a.click()
   URL.revokeObjectURL(url)
 }

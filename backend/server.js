@@ -11,6 +11,8 @@ configureCloudinary();
 const authRoutes = require('./routes/auth');
 const tradesRoutes = require('./routes/trades');
 const statsRoutes = require('./routes/stats');
+const journalRoutes = require('./routes/journal');
+const reportsRoutes = require('./routes/reports');
 
 const app = express();
 app.use(cors());
@@ -28,6 +30,8 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/trades', tradesRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/journal', journalRoutes);
+app.use('/api/reports', reportsRoutes);
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;

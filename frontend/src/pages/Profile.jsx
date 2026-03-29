@@ -2,13 +2,33 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { apiFetch } from '../api/client'
 
+const TIMEZONES = [
+  'UTC',
+  'Africa/Addis_Ababa',
+  'America/Chicago',
+  'America/Los_Angeles',
+  'America/New_York',
+  'Asia/Dubai',
+  'Asia/Tokyo',
+  'Australia/Sydney',
+  'Europe/Berlin',
+  'Europe/London',
+]
+
 export function Profile() {
   const { user, refreshUser } = useAuth()
   const [name, setName] = useState(user?.name || '')
+  const [timezone, setTimezone] = useState(user?.timezone || 'UTC')
+
+  const zoneOptions = [
+    ...new Set([...TIMEZONES, user?.timezone, timezone].filter(Boolean)),
+  ].sort()
 
   useEffect(() => {
     if (user?.name != null) setName(user.name)
+    if (user?.timezone != null) setTimezone(user.timezone)
   }, [user])
+
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -21,7 +41,7 @@ export function Profile() {
     try {
       await apiFetch('/auth/me', {
         method: 'PATCH',
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, timezone }),
       })
       await refreshUser()
       setMessage('Profile updated.')
@@ -36,7 +56,9 @@ export function Profile() {
     <div className="mx-auto max-w-md space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-white">Profile</h1>
-        <p className="mt-1 text-sm text-slate-500">Account details</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Timezone drives session buckets on Dashboard and Analytics.
+        </p>
       </div>
 
       <form
@@ -66,6 +88,35 @@ export function Profile() {
             onChange={(e) => setName(e.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
           />
+        </div>
+        <div>
+          <label htmlFor="tz" className="text-xs font-medium text-slate-400">
+            Timezone (IANA)
+          </label>
+          <select
+            id="tz"
+            value={zoneOptions.includes(timezone) ? timezone : 'UTC'}
+            onChange={(e) => setTimezone(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
+          >
+            {zoneOptions.map((z) => (
+              <option key={z} value={z}>
+                {z}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-slate-600">
+            If yours isn’t listed, pick the closest region; full list:{' '}
+            <a
+              href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"
+              className="text-emerald-500 hover:text-emerald-400"
+              target="_blank"
+              rel="noreferrer"
+            >
+              tz database
+            </a>
+            .
+          </p>
         </div>
         <button
           type="submit"

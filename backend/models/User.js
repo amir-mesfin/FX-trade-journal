@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     password: { type: String, required: true, minlength: 6, select: false },
+    /** IANA timezone for session analytics (e.g. America/New_York) */
+    timezone: { type: String, default: 'UTC', trim: true },
   },
   { timestamps: true }
 );

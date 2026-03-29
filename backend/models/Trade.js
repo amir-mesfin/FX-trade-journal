@@ -16,6 +16,8 @@ const tradeSchema = new mongoose.Schema(
     takeProfit: { type: Number },
     exitPrice: { type: Number },
     profitLoss: { type: Number },
+    /** Realized R (risk = entry→SL); optional manual override */
+    rMultiple: { type: Number },
     strategy: { type: String, trim: true, default: '' },
     notes: { type: String, default: '' },
     /** { url, publicId } from Cloudinary, or legacy local filename string */

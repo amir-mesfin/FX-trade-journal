@@ -19,6 +19,7 @@ const empty = {
   takeProfit: '',
   exitPrice: '',
   profitLoss: '',
+  rMultiple: '',
   strategy: '',
   notes: '',
   psychologyNote: '',
@@ -57,6 +58,7 @@ export function TradeForm() {
           takeProfit: t.takeProfit ?? '',
           exitPrice: t.exitPrice ?? '',
           profitLoss: t.profitLoss ?? '',
+          rMultiple: t.rMultiple ?? '',
           strategy: t.strategy || '',
           notes: t.notes || '',
           psychologyNote: t.psychologyNote || '',
@@ -92,6 +94,7 @@ export function TradeForm() {
         takeProfit: form.takeProfit,
         exitPrice: form.exitPrice,
         profitLoss: form.profitLoss,
+        rMultiple: form.rMultiple,
         strategy: form.strategy,
         notes: form.notes,
         psychologyNote: form.psychologyNote,
@@ -106,6 +109,7 @@ export function TradeForm() {
         const fd = new FormData()
         for (const [key, val] of Object.entries(payload)) {
           if (val === undefined || val === '') continue
+          if (key === 'rMultiple' && String(val).trim() === '') continue
           fd.append(key, String(val))
         }
         for (const f of files) fd.append('screenshots', f)
@@ -247,6 +251,20 @@ export function TradeForm() {
               onChange={(e) => set('profitLoss', e.target.value)}
               className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
             />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-400">Realized R (optional)</label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={form.rMultiple}
+              onChange={(e) => set('rMultiple', e.target.value)}
+              placeholder="Leave blank to auto from entry / SL / exit"
+              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
+            />
+            <p className="mt-1 text-xs text-slate-600">
+              R = move to exit ÷ risk (entry → stop). Filled only when all three exist.
+            </p>
           </div>
           <div>
             <label className="text-xs font-medium text-slate-400">Opened</label>

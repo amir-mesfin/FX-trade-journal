@@ -3,6 +3,8 @@ const Trade = require('../models/Trade');
 const { authRequired } = require('../middleware/auth');
 const { uploadScreenshots } = require('../middleware/upload');
 const { filesToScreenshots, removeStoredScreenshots } = require('../utils/screenshots');
+const { buildTradeFilter } = require('../utils/buildTradeFilter');
+const { computeRealizedRMultiple } = require('../utils/tradeMath');
 
 const router = express.Router();
 
@@ -62,7 +64,7 @@ router.post('/', handleUpload, async (req, res) => {
       return res.status(upErr.statusCode || 500).json({ error: upErr.message });
     }
 
-    const trade = await Trade.create({
+    const payload = {
       user: req.userId,
       pair,
       type,
@@ -79,7 +81,14 @@ router.post('/', handleUpload, async (req, res) => {
       closedAt,
       status: b.status === 'open' ? 'open' : 'closed',
       screenshots,
-    });
+    };
+    const manualR = numField(b.rMultiple);
+    if (manualR !== undefined) payload.rMultiple = manualR;
+    else {
+      const autoR = computeRealizedRMultiple(payload);
+      if (autoR !== undefined) payload.rMultiple = autoR;
+    }
+    const trade = await Trade.create(payload);
     res.status(201).json(trade);
   } catch (e) {
     console.error(e);
@@ -89,7 +98,8 @@ router.post('/', handleUpload, async (req, res) => {
 
 router.get('/export/csv', async (req, res) => {
   try {
-    const trades = await Trade.find({ user: req.userId }).sort({ openedAt: -1 }).lean();
+    const filter = buildTradeFilter(req.userId, req.query);
+    const trades = await Trade.find(filter).sort({ openedAt: -1 }).lean();
     const headers = [
       'pair',
       'type',
@@ -99,6 +109,7 @@ router.get('/export/csv', async (req, res) => {
       'stopLoss',
       'takeProfit',
       'profitLoss',
+      'rMultiple',
       'strategy',
       'openedAt',
       'closedAt',
@@ -125,18 +136,8 @@ router.get('/export/csv', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const { pair, strategy, startDate, endDate, page = '1', limit = '50' } = req.query;
-    const filter = { user: req.userId };
-    if (pair) filter.pair = String(pair).trim().toUpperCase();
-    if (strategy) {
-      const esc = String(strategy).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      filter.strategy = new RegExp(esc, 'i');
-    }
-    if (startDate || endDate) {
-      filter.openedAt = {};
-      if (startDate) filter.openedAt.$gte = new Date(startDate);
-      if (endDate) filter.openedAt.$lte = new Date(endDate);
-    }
+    const { page = '1', limit = '50' } = req.query;
+    const filter = buildTradeFilter(req.userId, req.query);
     const p = Math.max(1, parseInt(page, 10) || 1);
     const lim = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
     const [items, total] = await Promise.all([
@@ -223,6 +224,16 @@ router.patch('/:id', handleUpload, async (req, res) => {
     }
     if (newShots.length) {
       trade.screenshots = [...(trade.screenshots || []), ...newShots];
+    }
+    const manualR = numField(b.rMultiple);
+    if (manualR !== undefined) {
+      trade.rMultiple = manualR;
+    } else if (
+      ['entryPrice', 'stopLoss', 'exitPrice', 'type'].some((k) => b[k] !== undefined)
+    ) {
+      trade.rMultiple = computeRealizedRMultiple(trade.toObject());
+    } else if (trade.rMultiple == null) {
+      trade.rMultiple = computeRealizedRMultiple(trade.toObject());
     }
     await trade.save();
     res.json(trade);

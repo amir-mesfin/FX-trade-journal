@@ -10,6 +10,7 @@ import { TradeHistory } from './pages/TradeHistory'
 import { Analytics } from './pages/Analytics'
 import { Profile } from './pages/Profile'
 import { Calendar } from './pages/Calendar'
+import { Journal } from './pages/Journal'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
               <Route path="trades/:id/edit" element={<TradeForm />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="calendar" element={<Calendar />} />
+              <Route path="journal" element={<Journal />} />
               <Route path="profile" element={<Profile />} />
             </Route>
           </Route>

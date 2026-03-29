@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, downloadCsv } from '../api/client'
+import { statsQueryString } from '../utils/statsQuery'
 import { resolveScreenshotUrl, screenshotKey } from '../utils/screenshotUrl'
 
 function DetailRow({ label, children }) {
@@ -62,7 +63,8 @@ export function TradeHistory() {
   async function handleExport() {
     setExporting(true)
     try {
-      await downloadCsv()
+      const qs = statsQueryString(filters, '')
+      await downloadCsv(qs)
     } catch (e) {
       alert(e.message)
     } finally {
@@ -263,6 +265,9 @@ export function TradeHistory() {
                 <DetailRow label="Stop loss">{detail.stopLoss ?? '—'}</DetailRow>
                 <DetailRow label="Take profit">{detail.takeProfit ?? '—'}</DetailRow>
                 <DetailRow label="Exit">{detail.exitPrice ?? '—'}</DetailRow>
+                <DetailRow label="Realized R">
+                  {detail.rMultiple != null ? detail.rMultiple : '—'}
+                </DetailRow>
                 <DetailRow label="P/L">
                   <span
                     className={

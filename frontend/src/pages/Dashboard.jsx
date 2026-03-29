@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { apiFetch } from '../api/client'
+import { apiFetch, downloadPdf } from '../api/client'
+import { useAuth } from '../hooks/useAuth'
+import { StatsFilters } from '../components/StatsFilters'
+import { statsQueryString, reportQueryString } from '../utils/statsQuery'
 import {
   LineChart,
   Line,
@@ -11,17 +14,27 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
+const emptyFilters = { startDate: '', endDate: '', pair: '', strategy: '' }
+
 export function Dashboard() {
+  const { user } = useAuth()
   const [stats, setStats] = useState(null)
   const [error, setError] = useState('')
+  const [draftFilters, setDraftFilters] = useState(emptyFilters)
+  const [appliedFilters, setAppliedFilters] = useState(emptyFilters)
+  const [pdfLoading, setPdfLoading] = useState('')
   const [balance, setBalance] = useState('10000')
   const [riskPct, setRiskPct] = useState('1')
   const [stopPoints, setStopPoints] = useState('20')
   const [pipValue, setPipValue] = useState('10')
 
+  const tz = user?.timezone || 'UTC'
+
   useEffect(() => {
     let cancelled = false
-    apiFetch('/stats/summary')
+    const qs = statsQueryString(appliedFilters, tz)
+    setError('')
+    apiFetch(`/stats/summary${qs}`)
       .then((s) => {
         if (!cancelled) setStats(s)
       })
@@ -31,7 +44,7 @@ export function Dashboard() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [appliedFilters, tz])
 
   const suggestedLots = useMemo(() => {
     const b = Number(balance)
@@ -53,11 +66,58 @@ export function Dashboard() {
       }))
     : []
 
+  async function handlePdf(range) {
+    const q = reportQueryString({ range, filters: appliedFilters })
+    setPdfLoading(range)
+    try {
+      await downloadPdf(q)
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setPdfLoading('')
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-white">Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-500">Performance at a glance</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Filters apply to stats below. Sessions use your profile timezone ({tz}).
+        </p>
+      </div>
+
+      <StatsFilters
+        filters={draftFilters}
+        onChange={setDraftFilters}
+        onApply={() => setAppliedFilters({ ...draftFilters })}
+      />
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={!!pdfLoading}
+          onClick={() => handlePdf('week')}
+          className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 disabled:opacity-50"
+        >
+          {pdfLoading === 'week' ? 'PDF…' : 'PDF · Week'}
+        </button>
+        <button
+          type="button"
+          disabled={!!pdfLoading}
+          onClick={() => handlePdf('month')}
+          className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 disabled:opacity-50"
+        >
+          {pdfLoading === 'month' ? 'PDF…' : 'PDF · Month'}
+        </button>
+        <button
+          type="button"
+          disabled={!!pdfLoading}
+          onClick={() => handlePdf('year')}
+          className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 disabled:opacity-50"
+        >
+          {pdfLoading === 'year' ? 'PDF…' : 'PDF · Year'}
+        </button>
       </div>
 
       {error && (
@@ -70,7 +130,7 @@ export function Dashboard() {
 
       {stats && (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <StatCard label="Total trades" value={stats.totalTrades} />
             <StatCard
               label="Win rate"
@@ -81,7 +141,8 @@ export function Dashboard() {
               value={formatPL(stats.totalPL)}
               highlight={stats.totalPL >= 0 ? 'up' : 'down'}
             />
-            <StatCard label="Avg R:R (when SL/TP set)" value={stats.avgRR ?? '—'} />
+            <StatCard label="Avg R:R (plan)" value={stats.avgRR ?? '—'} />
+            <StatCard label="Avg R (realized)" value={stats.avgRMultiple ?? '—'} />
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
@@ -89,10 +150,10 @@ export function Dashboard() {
               <h2 className="text-sm font-medium text-slate-300">Equity curve</h2>
               {chartData.length === 0 ? (
                 <p className="mt-8 text-center text-sm text-slate-500">
-                  Log closed trades with P/L to see the curve.
+                  No P/L in this filter — log closed trades or widen the date range.
                 </p>
               ) : (
-                <div className="mt-4 h-64 w-full">
+                <div className="mt-4 h-80 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" />

@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { authRequired } = require('../middleware/auth');
+const { isValidTimezone } = require('../utils/timezone');
 
 const router = express.Router();
 
@@ -32,7 +33,7 @@ router.post('/register', async (req, res) => {
     const token = signToken(user._id);
     res.status(201).json({
       token,
-      user: { id: user._id, name: user.name, email: user.email },
+      user: { id: user._id, name: user.name, email: user.email, timezone: user.timezone || 'UTC' },
     });
   } catch (e) {
     console.error(e);
@@ -55,7 +56,12 @@ router.post('/login', async (req, res) => {
     const token = signToken(user._id);
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        timezone: user.timezone || 'UTC',
+      },
     });
   } catch (e) {
     console.error(e);
@@ -71,6 +77,7 @@ router.get('/me', authRequired, async (req, res) => {
       id: user._id,
       name: user.name,
       email: user.email,
+      timezone: user.timezone || 'UTC',
       createdAt: user.createdAt,
     });
   } catch (e) {
@@ -81,20 +88,28 @@ router.get('/me', authRequired, async (req, res) => {
 
 router.patch('/me', authRequired, async (req, res) => {
   try {
-    const { name } = req.body || {};
-    if (!name?.trim()) {
-      return res.status(400).json({ error: 'Name is required' });
+    const { name, timezone } = req.body || {};
+    const updates = {};
+    if (name !== undefined && String(name).trim()) updates.name = String(name).trim();
+    if (timezone !== undefined) {
+      const tz = String(timezone).trim() || 'UTC';
+      if (!isValidTimezone(tz)) {
+        return res.status(400).json({ error: 'Invalid IANA timezone' });
+      }
+      updates.timezone = tz;
     }
-    const user = await User.findByIdAndUpdate(
-      req.userId,
-      { name: name.trim() },
-      { new: true }
-    ).select('-password');
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'Provide name and/or timezone to update' });
+    }
+    const user = await User.findByIdAndUpdate(req.userId, updates, { new: true }).select(
+      '-password'
+    );
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({
       id: user._id,
       name: user.name,
       email: user.email,
+      timezone: user.timezone || 'UTC',
       createdAt: user.createdAt,
     });
   } catch (e) {
