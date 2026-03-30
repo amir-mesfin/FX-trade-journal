@@ -25,13 +25,31 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 204,
 };
-if (process.env.CORS_ORIGINS) {
-  const allowed = process.env.CORS_ORIGINS.split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
+
+function normalizeOrigin(url) {
+  if (!url || typeof url !== 'string') return '';
+  let s = url.trim();
+  // Browsers send Origin without a trailing slash; env often mistakenly includes one
+  while (s.endsWith('/')) s = s.slice(0, -1);
+  return s;
+}
+
+const LOCAL_DEV_ORIGINS = new Set([
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+]);
+
+const rawCors = process.env.CORS_ORIGINS?.trim();
+// CORS_ORIGINS=* → allow any browser origin (reflect Origin; same as leaving unset)
+if (rawCors && rawCors !== '*') {
+  const allowed = new Set([
+    ...LOCAL_DEV_ORIGINS,
+    ...rawCors.split(',').map((s) => normalizeOrigin(s)).filter(Boolean),
+  ]);
   corsOptions.origin = (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowed.includes(origin)) return callback(null, true);
+    if (allowed.has(normalizeOrigin(origin))) return callback(null, true);
     callback(null, false);
   };
 }
