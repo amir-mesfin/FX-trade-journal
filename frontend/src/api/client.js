@@ -1,4 +1,11 @@
+import { getApiOrigin } from '../config/apiOrigin'
+
 const TOKEN_KEY = 'token'
+
+function apiBase(path) {
+  const p = path.startsWith('/') ? path : `/${path}`
+  return `${getApiOrigin()}${p}`
+}
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY)
@@ -17,7 +24,7 @@ export async function apiFetch(path, options = {}) {
   const t = getToken()
   if (t) headers['Authorization'] = `Bearer ${t}`
 
-  const r = await fetch(`/api${path}`, { ...options, headers })
+  const r = await fetch(apiBase(`/api${path}`), { ...options, headers })
   if (r.status === 204) return null
   const data = await r.json().catch(() => ({}))
   if (!r.ok) throw new Error(data.error || r.statusText || 'Request failed')
@@ -27,7 +34,7 @@ export async function apiFetch(path, options = {}) {
 export async function downloadCsv(searchQuery = '') {
   const t = getToken()
   const path = `/api/trades/export/csv${searchQuery.startsWith('?') ? searchQuery : searchQuery ? `?${searchQuery}` : ''}`
-  const r = await fetch(path, {
+  const r = await fetch(apiBase(path), {
     headers: t ? { Authorization: `Bearer ${t}` } : {},
   })
   if (!r.ok) {
@@ -47,7 +54,7 @@ export async function uploadTradeCsv(file) {
   const t = getToken()
   const fd = new FormData()
   fd.append('file', file)
-  const r = await fetch('/api/trades/import/csv', {
+  const r = await fetch(apiBase('/api/trades/import/csv'), {
     method: 'POST',
     headers: t ? { Authorization: `Bearer ${t}` } : {},
     body: fd,
@@ -60,7 +67,7 @@ export async function uploadTradeCsv(file) {
 export async function downloadPdf(searchQuery = '') {
   const t = getToken()
   const path = `/api/reports/pdf${searchQuery.startsWith('?') ? searchQuery : searchQuery ? `?${searchQuery}` : ''}`
-  const r = await fetch(path, {
+  const r = await fetch(apiBase(path), {
     headers: t ? { Authorization: `Bearer ${t}` } : {},
   })
   if (!r.ok) {
