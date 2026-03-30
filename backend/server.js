@@ -16,7 +16,26 @@ const reportsRoutes = require('./routes/reports');
 const insightsRoutes = require('./routes/insights');
 
 const app = express();
-app.use(cors());
+
+// Default cors() uses Allow-Origin: * — browsers block that when the request uses
+// Authorization (or other non-simple headers). Reflect the request Origin instead.
+const corsOptions = {
+  origin: true,
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
+};
+if (process.env.CORS_ORIGINS) {
+  const allowed = process.env.CORS_ORIGINS.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  corsOptions.origin = (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowed.includes(origin)) return callback(null, true);
+    callback(null, false);
+  };
+}
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
