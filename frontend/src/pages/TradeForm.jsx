@@ -105,7 +105,9 @@ export function TradeForm() {
 
       const hasFiles = files.length > 0
 
-      if (!isEdit || hasFiles) {
+      // Multipart only when uploading images (Cloudinary on server). Otherwise JSON —
+      // more reliable behind proxies (e.g. Render) than empty multipart bodies.
+      if (hasFiles) {
         const fd = new FormData()
         for (const [key, val] of Object.entries(payload)) {
           if (val === undefined || val === '') continue
@@ -118,8 +120,8 @@ export function TradeForm() {
           body: fd,
         })
       } else {
-        await apiFetch(`/trades/${id}`, {
-          method: 'PATCH',
+        await apiFetch(isEdit ? `/trades/${id}` : '/trades', {
+          method: isEdit ? 'PATCH' : 'POST',
           body: JSON.stringify(payload),
         })
       }

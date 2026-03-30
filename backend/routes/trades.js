@@ -102,6 +102,15 @@ router.post('/', handleUpload, async (req, res) => {
     res.status(201).json(trade);
   } catch (e) {
     console.error(e);
+    if (e.name === 'ValidationError') {
+      const msg = Object.values(e.errors || {})
+        .map((x) => x.message)
+        .join('; ');
+      return res.status(400).json({ error: msg || 'Invalid trade data' });
+    }
+    if (e.code === 11000) {
+      return res.status(409).json({ error: 'Duplicate trade (import id conflict)' });
+    }
     res.status(500).json({ error: 'Could not create trade' });
   }
 });
