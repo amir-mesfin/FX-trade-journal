@@ -373,6 +373,25 @@ export function TradeHistory() {
                     {detail.profitLoss != null ? detail.profitLoss : '—'}
                   </span>
                 </DetailRow>
+
+                {/* ── Risk Management ────────────────────────────────── */}
+                {(detail.riskAmount != null || detail.riskPercent != null) && (
+                  <DetailRow label="Risk">
+                    <span className="inline-flex flex-wrap gap-3">
+                      {detail.riskAmount != null && (
+                        <span className="font-mono text-amber-300">
+                          ${detail.riskAmount}
+                        </span>
+                      )}
+                      {detail.riskPercent != null && (
+                        <span className="font-mono text-amber-400">
+                          {detail.riskPercent}% of account
+                        </span>
+                      )}
+                    </span>
+                  </DetailRow>
+                )}
+
                 <DetailRow label="Opened">
                   {detail.openedAt ? new Date(detail.openedAt).toLocaleString() : '—'}
                 </DetailRow>
@@ -395,6 +414,66 @@ export function TradeHistory() {
                   )}
                 </DetailRow>
               </dl>
+
+              {/* ── ICT Entry Checklist ──────────────────────────────── */}
+              {(() => {
+                const cl = detail.entryChecklist
+                const ITEMS = [
+                  { key: 'newsChecked',     label: 'Check news before 9:30' },
+                  { key: 'liquidityMarked', label: 'Mark liquidity & PD array' },
+                  { key: 'waitedNYOpen',   label: 'Wait NY open (9:30)' },
+                  { key: 'liquiditySweep', label: 'Wait liquidity sweep' },
+                  { key: 'crtConfirmed',   label: 'CRT confirmation' },
+                  { key: 'reversalSign',   label: 'Reversal sign' },
+                  { key: 'mssDisplacement',label: 'MSS + displacement' },
+                  { key: 'bprIfvgFvg',     label: 'BPR → IFVG → FVG' },
+                  { key: 'entryTaken',     label: 'Enter trade' },
+                  { key: 'targetCRT',      label: 'Target CRT' },
+                  { key: 'journaled',      label: 'Journal' },
+                ]
+                const done = cl ? ITEMS.filter(({ key }) => cl[key]).length : 0
+                const total = ITEMS.length
+                const pct = Math.round((done / total) * 100)
+                return (
+                  <div className="mt-5 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+                        ✅ ICT Entry Checklist
+                      </p>
+                      <span className={`text-xs font-mono ${done === total ? 'text-emerald-400' : done === 0 ? 'text-slate-600' : 'text-amber-400'}`}>
+                        {done}/{total} steps
+                      </span>
+                    </div>
+                    {/* progress bar */}
+                    <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-800">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div className="grid gap-1.5 sm:grid-cols-2">
+                      {ITEMS.map(({ key, label }) => {
+                        const checked = cl?.[key] ?? false
+                        return (
+                          <div
+                            key={key}
+                            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                              checked
+                                ? 'bg-emerald-600/10 text-emerald-400'
+                                : 'bg-slate-950/60 text-slate-600'
+                            }`}
+                          >
+                            <span className="text-base leading-none">{checked ? '✅' : '☐'}</span>
+                            {label}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })()}
+
+
 
               {shots.length > 0 && (
                 <div className="mt-6">
