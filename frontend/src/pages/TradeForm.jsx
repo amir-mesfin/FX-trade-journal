@@ -36,6 +36,8 @@ const empty = {
   exitPrice: '',
   profitLoss: '',
   rMultiple: '',
+  riskAmount: '',
+  riskPercent: '',
   strategy: '',
   notes: '',
   psychologyNote: '',
@@ -76,6 +78,8 @@ export function TradeForm() {
           exitPrice: t.exitPrice ?? '',
           profitLoss: t.profitLoss ?? '',
           rMultiple: t.rMultiple ?? '',
+          riskAmount: t.riskAmount ?? '',
+          riskPercent: t.riskPercent ?? '',
           strategy: t.strategy || '',
           notes: t.notes || '',
           psychologyNote: t.psychologyNote || '',
@@ -113,6 +117,8 @@ export function TradeForm() {
         exitPrice: form.exitPrice,
         profitLoss: form.profitLoss,
         rMultiple: form.rMultiple,
+        riskAmount: form.riskAmount,
+        riskPercent: form.riskPercent,
         strategy: form.strategy,
         notes: form.notes,
         psychologyNote: form.psychologyNote,
@@ -288,6 +294,48 @@ export function TradeForm() {
             <p className="mt-1 text-xs text-slate-600">
               R = move to exit ÷ risk (entry → stop). Filled only when all three exist.
             </p>
+          </div>
+
+          {/* ── Risk section ──────────────────────────────────────────────────── */}
+          <div className="sm:col-span-2 rounded-xl border border-amber-800/40 bg-amber-500/5 p-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-amber-400">
+              💰 Risk Management
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-xs font-medium text-slate-400">Dollar risk ($)</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="e.g. 50"
+                  value={form.riskAmount}
+                  onChange={(e) => set('riskAmount', e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-amber-500"
+                />
+                <p className="mt-1 text-xs text-slate-600">How many dollars you are risking on this trade.</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-400">Account risk (%)</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="e.g. 1"
+                  value={form.riskPercent}
+                  onChange={(e) => set('riskPercent', e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-amber-500"
+                />
+                <p className="mt-1 text-xs text-slate-600">Percentage of your total account balance at risk.</p>
+              </div>
+            </div>
+            {/* Live implied account size */}
+            {form.riskAmount !== '' && form.riskPercent !== '' && Number(form.riskPercent) > 0 && (
+              <p className="mt-3 text-xs text-amber-400/80">
+                → Implied account size:{' '}
+                <span className="font-semibold text-amber-300">
+                  ${(Number(form.riskAmount) / (Number(form.riskPercent) / 100)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </span>
+              </p>
+            )}
           </div>
           <div>
             <label className="text-xs font-medium text-slate-400">Opened</label>

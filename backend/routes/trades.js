@@ -91,6 +91,8 @@ router.post('/', handleUpload, async (req, res) => {
       closedAt,
       status: b.status === 'open' ? 'open' : 'closed',
       screenshots,
+      riskAmount: numField(b.riskAmount),
+      riskPercent: numField(b.riskPercent),
     };
     const manualR = numField(b.rMultiple);
     if (manualR !== undefined) payload.rMultiple = manualR;
@@ -252,6 +254,8 @@ router.patch('/:id', handleUpload, async (req, res) => {
       'notes',
       'psychologyNote',
       'status',
+      'riskAmount',
+      'riskPercent',
     ];
     for (const key of fields) {
       if (b[key] === undefined) continue;
