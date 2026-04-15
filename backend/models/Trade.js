@@ -18,6 +18,10 @@ const tradeSchema = new mongoose.Schema(
     profitLoss: { type: Number },
     /** Realized R (risk = entry→SL); optional manual override */
     rMultiple: { type: Number },
+    /** Dollar amount risked on this trade */
+    riskAmount: { type: Number },
+    /** Percentage of account balance risked (e.g. 1.5 = 1.5%) */
+    riskPercent: { type: Number },
     strategy: { type: String, trim: true, default: '' },
     notes: { type: String, default: '' },
     /** { url, publicId } from Cloudinary, or legacy local filename string */

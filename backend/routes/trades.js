@@ -98,6 +98,14 @@ router.post('/', handleUpload, async (req, res) => {
       const autoR = computeRealizedRMultiple(payload);
       if (autoR !== undefined) payload.rMultiple = autoR;
     }
+    // Parse entryChecklist (arrives as JSON string from multipart, object from JSON body)
+    if (b.entryChecklist !== undefined) {
+      try {
+        payload.entryChecklist = typeof b.entryChecklist === 'string'
+          ? JSON.parse(b.entryChecklist)
+          : b.entryChecklist;
+      } catch (_) { /* ignore malformed */ }
+    }
     const trade = await Trade.create(payload);
     res.status(201).json(trade);
   } catch (e) {
@@ -289,6 +297,15 @@ router.patch('/:id', handleUpload, async (req, res) => {
       trade.rMultiple = computeRealizedRMultiple(trade.toObject());
     } else if (trade.rMultiple == null) {
       trade.rMultiple = computeRealizedRMultiple(trade.toObject());
+    }
+    // Parse and merge entryChecklist
+    if (b.entryChecklist !== undefined) {
+      try {
+        const cl = typeof b.entryChecklist === 'string'
+          ? JSON.parse(b.entryChecklist)
+          : b.entryChecklist;
+        trade.entryChecklist = { ...(trade.entryChecklist?.toObject?.() ?? trade.entryChecklist ?? {}), ...cl };
+      } catch (_) { /* ignore malformed */ }
     }
     await trade.save();
     res.json(trade);
