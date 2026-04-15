@@ -10,6 +10,22 @@ function toLocalInput(iso) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+const CHECKLIST_ITEMS = [
+  { key: 'newsChecked',     label: 'Check news before 9:30' },
+  { key: 'liquidityMarked', label: 'Mark liquidity & PD array' },
+  { key: 'waitedNYOpen',   label: 'Wait NY open (9:30)' },
+  { key: 'liquiditySweep', label: 'Wait liquidity sweep' },
+  { key: 'crtConfirmed',   label: 'CRT confirmation' },
+  { key: 'reversalSign',   label: 'Reversal sign' },
+  { key: 'mssDisplacement',label: 'MSS + displacement' },
+  { key: 'bprIfvgFvg',     label: 'BPR → IFVG → FVG' },
+  { key: 'entryTaken',     label: 'Enter trade' },
+  { key: 'targetCRT',      label: 'Target CRT' },
+  { key: 'journaled',      label: 'Journal' },
+]
+
+const emptyChecklist = Object.fromEntries(CHECKLIST_ITEMS.map(({ key }) => [key, false]))
+
 const empty = {
   pair: '',
   type: 'buy',
@@ -26,6 +42,7 @@ const empty = {
   openedAt: '',
   closedAt: '',
   status: 'closed',
+  entryChecklist: { ...emptyChecklist },
 }
 
 export function TradeForm() {
@@ -65,6 +82,7 @@ export function TradeForm() {
           openedAt: toLocalInput(t.openedAt),
           closedAt: t.closedAt ? toLocalInput(t.closedAt) : '',
           status: t.status || 'closed',
+          entryChecklist: { ...emptyChecklist, ...(t.entryChecklist || {}) },
         })
       })
       .catch((e) => setError(e.message))
@@ -101,6 +119,7 @@ export function TradeForm() {
         status: form.status,
         openedAt: form.openedAt ? new Date(form.openedAt).toISOString() : undefined,
         closedAt: form.closedAt ? new Date(form.closedAt).toISOString() : '',
+        entryChecklist: form.entryChecklist,
       }
 
       const hasFiles = files.length > 0
@@ -112,6 +131,8 @@ export function TradeForm() {
         for (const [key, val] of Object.entries(payload)) {
           if (val === undefined || val === '') continue
           if (key === 'rMultiple' && String(val).trim() === '') continue
+          // Serialize nested checklist as JSON string for multipart
+          if (key === 'entryChecklist') { fd.append(key, JSON.stringify(val)); continue }
           fd.append(key, String(val))
         }
         for (const f of files) fd.append('screenshots', f)
@@ -314,6 +335,60 @@ export function TradeForm() {
               onChange={(e) => set('psychologyNote', e.target.value)}
               className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
             />
+          </div>
+
+          {/* ── ICT Entry Checklist ───────────────────────────────────────── */}
+          <div className="sm:col-span-2">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-400">
+              ✅ ICT Entry Checklist
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {CHECKLIST_ITEMS.map(({ key, label }) => {
+                const checked = form.entryChecklist[key] ?? false
+                return (
+                  <label
+                    key={key}
+                    className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+                      checked
+                        ? 'border-emerald-600 bg-emerald-600/10 text-emerald-400'
+                        : 'border-slate-700 bg-slate-950 text-slate-400 hover:border-slate-600'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          entryChecklist: { ...f.entryChecklist, [key]: e.target.checked },
+                        }))
+                      }
+                      className="h-4 w-4 accent-emerald-500"
+                    />
+                    {label}
+                  </label>
+                )
+              })}
+            </div>
+            {/* completion badge */}
+            {(() => {
+              const total = CHECKLIST_ITEMS.length
+              const done = CHECKLIST_ITEMS.filter(({ key }) => form.entryChecklist[key]).length
+              const pct = Math.round((done / total) * 100)
+              return (
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-all"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-slate-500">
+                    {done}/{total} steps
+                  </span>
+                </div>
+              )
+            })()}
           </div>
           {isEdit && existingShots.length > 0 && (
             <div className="sm:col-span-2">

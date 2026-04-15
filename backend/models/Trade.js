@@ -27,6 +27,20 @@ const tradeSchema = new mongoose.Schema(
     status: { type: String, enum: ['open', 'closed'], default: 'closed' },
     /** Optional psychology / daily journal line tied to this trade */
     psychologyNote: { type: String, default: '' },
+    /** ICT entry checklist — each step must be confirmed before entering */
+    entryChecklist: {
+      newsChecked:       { type: Boolean, default: false }, // Check news before 9:30
+      liquidityMarked:   { type: Boolean, default: false }, // Mark liquidity & PD array
+      waitedNYOpen:      { type: Boolean, default: false }, // Wait NY open (9:30)
+      liquiditySweep:    { type: Boolean, default: false }, // Wait liquidity sweep
+      crtConfirmed:      { type: Boolean, default: false }, // CRT confirmation
+      reversalSign:      { type: Boolean, default: false }, // Reversal sign
+      mssDisplacement:   { type: Boolean, default: false }, // MSS + displacement
+      bprIfvgFvg:        { type: Boolean, default: false }, // BPR > IFVG > FVG
+      entryTaken:        { type: Boolean, default: false }, // Enter trade
+      targetCRT:         { type: Boolean, default: false }, // Target CRT
+      journaled:         { type: Boolean, default: false }, // Journal
+    },
     importSource: { type: String, enum: ['manual', 'csv'], default: 'manual' },
     /** Dedup CSV imports (e.g. MT ticket) */
     externalId: { type: String },
